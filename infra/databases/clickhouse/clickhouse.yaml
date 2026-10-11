@@ -520,6 +520,12 @@ spec:
         - matchLabels: { io.kubernetes.pod.namespace: teleport-agent, app: teleport-app-access }
       toPorts:
         - ports: [{ port: "8123", protocol: TCP }]
+    # new-api-sync's lane grader, as the same reader
+    - fromEndpoints:
+        - matchLabels: { io.kubernetes.pod.namespace: services, app: new-api-sync }
+        - matchLabels: { io.kubernetes.pod.namespace: services, app: new-api-sync-full }
+      toPorts:
+        - ports: [{ port: "8123", protocol: TCP }]
   egress:
     # Hetzner Object Storage for the cold tier; no FQDN rules on this cluster (DNS proxy)
     - toEntities: [world]
