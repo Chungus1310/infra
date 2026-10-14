@@ -974,7 +974,9 @@ data:
               ) > 2000
             labels: { severity: warning, source: loki }
             annotations:
-              summary: "gateway auto-disabled {{ $value }} lanes in the last hour"
+              # one line per failure, so a single dead upstream (dahl 502s on Oct 11: 2,054
+              # lines from 260 lanes) reads high; group by the lane prefix to find it
+              summary: "{{ $value }} lane disable events in the last hour (one per failure, not per lane): an upstream family is failing"
           # Share of relay attempts that ended in an upstream channel error over 15
           # minutes, gateway-wide (the log carries the channel id, not the provider). Free
           # lane failover keeps it at 20 to 45% (Sep 28 to 30: median 28%, max 54%).
