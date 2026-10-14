@@ -174,7 +174,13 @@ data:
         no_prepared_statement: true
         query: |
           WITH den AS (
-            SELECT ip, count() AS c, min(created_at) AS mn
+            SELECT ip, count() AS c, min(created_at) AS mn,
+                   -- routes only an operator calls: a refusal there from a new address pages
+                   countIf(match(other.op.params.path.:String,
+                     '^/api/(channel|option|ratio_sync|redemption|deployments|performance|plugin|setup|models/sync|user/(manage|search|[0-9]))')) AS admin_hits,
+                   if(isIPv4String(ip),
+                      concat(IPv4NumToString(bitAnd(toIPv4(ip), toIPv4('255.255.255.0'))), '/24'),
+                      concat(IPv6NumToString(tupleElement(IPv6CIDRToRange(toIPv6(ip), 48), 1)), '/48')) AS net
             FROM audit_logs
             WHERE created_at > toUnixTimestamp(now()) - 300
               -- Security denials are written with status 200 before the abort; a refused
@@ -207,9 +213,21 @@ data:
             INNER JOIN den AS d ON s.ip = d.ip
             WHERE s.created_at < d.mn - 300
               AND s.created_at > d.mn - 604800
+          ),
+          -- `logs.ip` is empty for most customers, but every row keeps the caller's network.
+          -- A desktop client asking for balance with its API key refuses from the same
+          -- network that is relaying successfully: that is a customer, not a probe.
+          serving AS (
+            SELECT DISTINCT JSONExtractString(other, 'admin_info', 'client_net') AS net
+            FROM logs
+            WHERE created_at > toUnixTimestamp(now()) - 900
+              AND type = 2
+              AND (SELECT count() FROM den) > 0
+              AND JSONExtractString(other, 'admin_info', 'client_net') IN (SELECT net FROM den)
           )
           SELECT toFloat64(max(c)) AS max_denials,
-                 toFloat64(count()) AS offending_ips
+                 toFloat64(countIf(net NOT IN (SELECT net FROM serving))) AS offending_ips,
+                 toFloat64(countIf(admin_hits > 0)) AS admin_offending_ips
           FROM den
           WHERE ip NOT IN (SELECT ip FROM known)
 
@@ -552,8 +570,13 @@ data:
         query_ref: denials_from_new_ip
       - metric_name: cnpg_newapi_denials_from_new_ip_offending_ips
         type: gauge
-        help: "Count of previously-unseen addresses producing 3 or more refusals in 5m."
+        help: "Previously-unseen addresses with 3 or more refusals in 5m whose network relayed nothing successfully in 15m."
         values: [offending_ips]
+        query_ref: denials_from_new_ip
+      - metric_name: cnpg_newapi_denials_from_new_ip_admin_offending_ips
+        type: gauge
+        help: "Previously-unseen addresses with 3 or more refusals in 5m, at least one on an operator-only route."
+        values: [admin_offending_ips]
         query_ref: denials_from_new_ip
 
       - metric_name: cnpg_newapi_privilege_probes_pat_route_count
@@ -729,7 +752,7 @@ spec:
     metadata:
       labels: {app: clickhouse-security-exporter}
       # sql_exporter reads its queries once at start: bump with every ConfigMap change
-      annotations: {config-rev: "3"}
+      annotations: {config-rev: "4"}
     spec:
       automountServiceAccountToken: false
       securityContext:

@@ -111,10 +111,25 @@ spec:
     # the address having no history rather than on the count being high.
     - name: newapi.security.newip
       rules:
+        # Customers' desktop clients asking for their balance with an API key were most of
+        # these pages (seven in four days to 2026-10-14, none a threat): an address whose
+        # network relays successfully is not counted, and only operator routes page.
+        - alert: DenialsFromUnknownIPAdmin
+          expr: cnpg_newapi_denials_from_new_ip_admin_offending_ips > 0
+          for: 0m
+          labels: { severity: critical }
+          annotations:
+            summary: "Previously-unseen address refused on operator-only routes (channel, option, user management)"
+            description: >-
+              {{ $value }} new address(es) with 3 or more refusals in 5m, at least one on an
+              operator route. Find it with
+              `SELECT ip, groupUniqArray(other.op.params.path::String), count() FROM audit_logs
+              WHERE action LIKE 'security.%%' AND created_at > toUnixTimestamp(now()) - 900
+              GROUP BY 1`, then check for any successful action from it since.
         - alert: DenialsFromUnknownIP
           expr: cnpg_newapi_denials_from_new_ip_offending_ips > 0
           for: 0m
-          labels: { severity: critical }
+          labels: { severity: warning }
           annotations:
             summary: "Previously-unseen address producing repeated security refusals"
             description: >-
