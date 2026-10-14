@@ -213,20 +213,9 @@ data:
             INNER JOIN den AS d ON s.ip = d.ip
             WHERE s.created_at < d.mn - 300
               AND s.created_at > d.mn - 604800
-          ),
-          -- `logs.ip` is empty for most customers, but every row keeps the caller's network.
-          -- A desktop client asking for balance with its API key refuses from the same
-          -- network that is relaying successfully: that is a customer, not a probe.
-          serving AS (
-            SELECT DISTINCT JSONExtractString(other, 'admin_info', 'client_net') AS net
-            FROM logs
-            WHERE created_at > toUnixTimestamp(now()) - 900
-              AND type = 2
-              AND (SELECT count() FROM den) > 0
-              AND JSONExtractString(other, 'admin_info', 'client_net') IN (SELECT net FROM den)
           )
           SELECT toFloat64(max(c)) AS max_denials,
-                 toFloat64(countIf(net NOT IN (SELECT net FROM serving))) AS offending_ips,
+                 toFloat64(count()) AS offending_ips,
                  toFloat64(countIf(admin_hits > 0)) AS admin_offending_ips
           FROM den
           WHERE ip NOT IN (SELECT ip FROM known)
@@ -570,7 +559,7 @@ data:
         query_ref: denials_from_new_ip
       - metric_name: cnpg_newapi_denials_from_new_ip_offending_ips
         type: gauge
-        help: "Previously-unseen addresses with 3 or more refusals in 5m whose network relayed nothing successfully in 15m."
+        help: "Count of previously-unseen addresses producing 3 or more refusals in 5m."
         values: [offending_ips]
         query_ref: denials_from_new_ip
       - metric_name: cnpg_newapi_denials_from_new_ip_admin_offending_ips
@@ -752,7 +741,7 @@ spec:
     metadata:
       labels: {app: clickhouse-security-exporter}
       # sql_exporter reads its queries once at start: bump with every ConfigMap change
-      annotations: {config-rev: "4"}
+      annotations: {config-rev: "5"}
     spec:
       automountServiceAccountToken: false
       securityContext:
