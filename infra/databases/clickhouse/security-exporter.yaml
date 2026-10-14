@@ -134,10 +134,17 @@ data:
       - query_name: twofa_changes
         no_prepared_statement: true
         query: |
-          SELECT toFloat64(count()) AS count
-          FROM audit_logs
-          WHERE created_at > toUnixTimestamp(now()) - 300
-            AND action IN ('user.2fa_setup', 'user.2fa_enable', 'user.2fa_disable', 'user.2fa_disable_self')
+          -- one person trying 2FA once is setup, enable, disable: 3 events that paged (2026-10-14)
+          SELECT toFloat64(count()) AS count,
+                 toFloat64(uniqExact(user_id)) AS users,
+                 toFloat64(countIf(action = 'user.2fa_disable')) AS admin_disables,
+                 toFloat64(max(per_user)) AS max_per_user
+          FROM (
+            SELECT user_id, action, count() OVER (PARTITION BY user_id) AS per_user
+            FROM audit_logs
+            WHERE created_at > toUnixTimestamp(now()) - 300
+              AND action IN ('user.2fa_setup', 'user.2fa_enable', 'user.2fa_disable', 'user.2fa_disable_self')
+          )
 
       - query_name: security_setting_changes
         no_prepared_statement: true
@@ -527,6 +534,21 @@ data:
         help: "2FA enrol/disable events in the last 5 minutes. A real user enrols once."
         values: [count]
         query_ref: twofa_changes
+      - metric_name: cnpg_newapi_twofa_changes_users
+        type: gauge
+        help: "Accounts with a 2FA enrol/disable event in the last 5 minutes."
+        values: [users]
+        query_ref: twofa_changes
+      - metric_name: cnpg_newapi_twofa_admin_disables
+        type: gauge
+        help: "2FA force-disabled by an admin on another account in the last 5 minutes."
+        values: [admin_disables]
+        query_ref: twofa_changes
+      - metric_name: cnpg_newapi_twofa_changes_max_per_user
+        type: gauge
+        help: "Most 2FA events by one account in the last 5 minutes."
+        values: [max_per_user]
+        query_ref: twofa_changes
 
       - metric_name: cnpg_newapi_security_setting_changes_count
         type: gauge
@@ -741,7 +763,7 @@ spec:
     metadata:
       labels: {app: clickhouse-security-exporter}
       # sql_exporter reads its queries once at start: bump with every ConfigMap change
-      annotations: {config-rev: "5"}
+      annotations: {config-rev: "6"}
     spec:
       automountServiceAccountToken: false
       securityContext:

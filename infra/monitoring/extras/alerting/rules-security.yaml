@@ -350,14 +350,32 @@ spec:
     # alert is what turns that cycle into a signal instead of a dead end.
     - name: newapi.security.twofa
       rules:
-        - alert: TwoFactorChurn
-          expr: cnpg_newapi_twofa_changes_count >= 3
+        # Trying 2FA once is setup, enable, disable: three events from one account, which
+        # paged on 2026-10-14. What pages: an admin removing someone's 2FA (the takeover
+        # path) or several accounts cycling at once.
+        - alert: TwoFactorForceDisabled
+          expr: cnpg_newapi_twofa_admin_disables > 0
           for: 0m
           labels: { page: "true", severity: critical }
           annotations:
-            summary: "{{ $value }} 2FA enrol/disable events in 5 minutes"
+            summary: "An admin force-disabled 2FA on {{ $value }} account(s) in 5 minutes"
             description: >-
-              Rapid 2FA setup/enable/force-disable cycling. A real user enrols once.
+              Confirm the operator did it: `SELECT toDateTime(created_at), user_id, username, ip,
+              other FROM audit_logs WHERE action = 'user.2fa_disable' ORDER BY created_at DESC LIMIT 5`.
+        - alert: TwoFactorChurn
+          expr: cnpg_newapi_twofa_changes_users >= 3
+          for: 0m
+          labels: { page: "true", severity: critical }
+          annotations:
+            summary: "{{ $value }} accounts changed 2FA in 5 minutes"
+            description: >-
+              Several accounts enrolling or disabling 2FA at once. A real user enrols once.
+        - alert: TwoFactorCycling
+          expr: cnpg_newapi_twofa_changes_max_per_user >= 6
+          for: 0m
+          labels: { severity: warning }
+          annotations:
+            summary: "One account made {{ $value }} 2FA changes in 5 minutes"
 
     # E. Refused attempts, recorded durably. Edge logs expire within a day, so new-api
     # writes every refused auth / proof / permission check to the audit log itself;
