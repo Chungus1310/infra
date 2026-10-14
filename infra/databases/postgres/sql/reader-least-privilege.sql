@@ -88,7 +88,7 @@ GRANT SELECT ON public.user_oauth_bindings TO reader;
 GRANT SELECT ON public.user_sessions TO reader;
 GRANT SELECT ON public.user_subscriptions TO reader;
 -- public.users: withholding password, access_token
-GRANT SELECT ("id", "username", "display_name", "role", "status", "email", "github_id", "discord_id", "oidc_id", "wechat_id", "telegram_id", "quota", "used_quota", "request_count", "group", "aff_code", "aff_count", "aff_quota", "aff_history", "inviter_id", "deleted_at", "linux_do_id", "setting", "remark", "stripe_customer", "referral_commission_percent", "creem_customer", "created_at", "last_login_at", "register_ip", "auth_version") ON public.users TO reader;
+GRANT SELECT ("id", "username", "display_name", "role", "status", "email", "github_id", "discord_id", "oidc_id", "wechat_id", "telegram_id", "quota", "used_quota", "request_count", "group", "aff_code", "aff_count", "aff_quota", "aff_history", "inviter_id", "deleted_at", "linux_do_id", "setting", "remark", "stripe_customer", "referral_commission_percent", "creem_customer", "created_at", "last_login_at", "register_ip", "auth_version", "customer_type", "customer_type_at") ON public.users TO reader;
 GRANT SELECT ON public.vendors TO reader;
 
 COMMIT;
