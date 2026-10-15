@@ -6,8 +6,9 @@
 # No toFQDNs and no DNS L7 rule anywhere on this cluster: with socket-LB, vxlan and legacy
 # host routing the transparent DNS proxy redirect drops every query before it reaches the
 # proxy socket (cilium/cilium#46284), which took mcp, bot and the Teleport-routed hosts down
-# for 90 seconds on 2026-09-07. The tunnel edge is therefore its two documented /24s and the
-# PostHog origins of the ph.unorouter.com route are "world on 443" from this pod only.
+# for 90 seconds on 2026-09-07. The tunnel edge is therefore its two documented /24s. The
+# "world on 443" rule served the ph.unorouter.com PostHog route, removed 2026-10-15; drop it only
+# after confirming cloudflared needs nothing else on 443.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:

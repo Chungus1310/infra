@@ -62,7 +62,7 @@ spec:
 ---
 # Frontend (Next.js BFF). In from the tunnel only. Out: the gateway, the bot (BOT_INTERNAL_URL),
 # and the internet on 80 and 443, which is exactly the port set safe-fetch accepts for
-# user-supplied URLs (Turso, PostHog, Tavily, Runware and cards.unorouter.com are 443).
+# user-supplied URLs (Turso, Tavily, Runware and cards.unorouter.com are 443).
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
