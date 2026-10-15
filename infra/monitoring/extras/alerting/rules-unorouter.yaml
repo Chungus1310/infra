@@ -158,13 +158,23 @@ spec:
           annotations:
             summary: "CNPG backup {{ $labels.name }} stuck in {{ $labels.phase }} >1h"
             description: "barman hangs here indefinitely with no error and no completion (CNPG #5420); the 2026-07-22 backups sat in this state until killed."
+        # A provider outage (Hetzner fsn1, 2026-10-15) stops archiving with days of WAL
+        # headroom on disk, so the first hours post to Discord; the phone rings once the
+        # restore point is three hours stale.
         - alert: CNPGWalArchiveFailing
           expr: cnpg_pg_stat_archiver_last_failed_time > cnpg_pg_stat_archiver_last_archived_time
           for: 15m
-          labels: { page: "true", severity: critical }
+          labels: { severity: warning }
           annotations:
             summary: "WAL archiving failing on {{ $labels.pod }}"
-            description: "Runbook hard gate: WAL archiving must stay green or PITR silently rots."
+            description: "WAL piles up on the pod disk and uploads once object storage answers again. Check status.hetzner.com for fsn1 first."
+        - alert: CNPGWalArchiveStuck
+          expr: cnpg_pg_stat_archiver_last_failed_time > cnpg_pg_stat_archiver_last_archived_time
+          for: 3h
+          labels: { page: "true", severity: critical }
+          annotations:
+            summary: "WAL archiving failing on {{ $labels.pod }} for 3h"
+            description: "Runbook hard gate: WAL archiving must stay green or PITR silently rots. Watch pg_wal on the pod disk."
         - alert: CNPGWalArchiveFailures
           # Deliberately a bare counter, warning-only, Discord-only: it exists to surface
           # failures that self-recover, which CNPGWalArchiveFailing above (the critical,
