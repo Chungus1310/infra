@@ -40,6 +40,9 @@ GRANT SELECT ON public.checkins TO reader;
 -- public.custom_oauth_providers: withholding client_secret
 GRANT SELECT ("id", "name", "slug", "enabled", "client_id", "authorization_endpoint", "token_endpoint", "user_info_endpoint", "scopes", "user_id_field", "username_field", "display_name_field", "email_field", "well_known", "auth_style", "created_at", "updated_at", "icon", "access_policy", "access_denied_message") ON public.custom_oauth_providers TO reader;
 GRANT SELECT ON public.external_identity_claims TO reader;
+-- public.free_consents: withholding guest_id (the guest cookie value, which would let a
+-- reader act as that guest towards the chat BFF)
+GRANT SELECT ("id", "user_id", "model", "locale", "text", "created_at", "revoked_at") ON public.free_consents TO reader;
 GRANT SELECT ON public.logs TO reader;
 GRANT SELECT ON public.midjourneys TO reader;
 GRANT SELECT ON public.model_status_components TO reader;
