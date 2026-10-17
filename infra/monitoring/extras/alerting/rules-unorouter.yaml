@@ -303,11 +303,13 @@ spec:
           annotations:
             summary: "no successful ClickHouse backup in 3 hours: kubectl -n databases create job --from=cronjob/clickhouse-backup clickhouse-backup-manual"
         - alert: ClickHouseBackupFailed
-          expr: kube_job_status_failed{namespace="databases", job_name=~"clickhouse-backup-.*"} > 0
+          # The hourly job keeps its last failed Job object until the next failure, so
+          # counting failed Jobs fired for a day after one miss with every later run green.
+          expr: time() - kube_cronjob_status_last_successful_time{namespace="databases", cronjob="clickhouse-backup"} > 3 * 3600
           for: 5m
           labels: { severity: warning }
           annotations:
-            summary: "ClickHouse backup {{ $labels.job_name }} failed: kubectl -n databases logs job/{{ $labels.job_name }}"
+            summary: "No successful ClickHouse backup for {{ $value | humanizeDuration }}: kubectl -n databases get jobs | grep clickhouse-backup"
 
     # E. CNPG cluster health
     - name: unorouter.postgres
