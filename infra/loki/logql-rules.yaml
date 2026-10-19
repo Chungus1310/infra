@@ -124,11 +124,29 @@ data:
                   {namespace="teleport", container="teleport", pod=~"teleport-auth.*"}
                     |= `"event":`
                     | json
+                    | user!="bot-operator"
                     | event=~"role\\.(created|updated|deleted)|(github|saml|oidc)\\.(created|updated|deleted)|user\\.(create|update|delete)|trusted_cluster\\.(create|delete)"
                   [5m]
                 )
               ) > 0
             labels: { page: "true", severity: critical, source: loki }
+            annotations:
+              summary: "teleport privilege change by {{ $labels.user }} from {{ $labels.addr_remote }}: {{ $labels.event }} {{ $labels.name }}"
+          # The operator re-applies every role and connector from git (ArgoCD) whenever it
+          # restarts, which a brief apiserver hiccup causes; git is the audit for those.
+          - alert: TeleportPrivilegeChange
+            expr: >-
+              sum by (user, event, name, addr_remote) (
+                count_over_time(
+                  {namespace="teleport", container="teleport", pod=~"teleport-auth.*"}
+                    |= `"event":`
+                    | json
+                    | user="bot-operator"
+                    | event=~"role\\.(created|updated|deleted)|(github|saml|oidc)\\.(created|updated|deleted)|user\\.(create|update|delete)|trusted_cluster\\.(create|delete)"
+                  [5m]
+                )
+              ) > 0
+            labels: { severity: warning, source: loki }
             annotations:
               summary: "teleport privilege change by {{ $labels.user }} from {{ $labels.addr_remote }}: {{ $labels.event }} {{ $labels.name }}"
           # Every successful Teleport login, to Discord. Teleport only sees the proxy and
@@ -426,6 +444,7 @@ data:
                     | label_format actor=`{{ or .impersonatedUser_username .user_username }}`
                     | actor!~"system:.*"
                     | actor!="0-don"
+                    | (actor!="talos:admin" or objectRef_name!="talos-bootstrap-manifests-inventory")
                     | objectRef_subresource!~"exec|attach|portforward"
                     | (objectRef_resource!="secrets" or objectRef_namespace!~"|services|openbao|databases")
                     | objectRef_resource!~"externalsecrets|secretstores|clustersecretstores|roles|rolebindings|clusterroles|clusterrolebindings"
@@ -550,6 +569,10 @@ data:
                     | label_format actor=`{{ .user_username }}`
                     | src!=ip("10.200.0.0/24") | src!=ip("127.0.0.0/8") | src!="::1"
                     | src!=ip("167.233.0.0/16") | src!=ip("2a01:4f8::/32") | src!="100.89.57.70"
+                    # Talos's manifest sync after an apiserver restart reaches the API over a
+                    # node's tailnet address: discovery, the kube-system namespace and its own
+                    # inventory configmap. Anything else under talos:admin still pages.
+                    | (actor!="talos:admin" or verb!~"get|update" or (requestURI!~"/apis?" and (objectRef_resource!~"configmaps|namespaces" or objectRef_name!~"talos-bootstrap-manifests-inventory|kube-system")))
                   [5m]
                 )
               ) > 0
