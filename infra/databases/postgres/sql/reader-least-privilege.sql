@@ -42,7 +42,7 @@ GRANT SELECT ("id", "name", "slug", "enabled", "client_id", "authorization_endpo
 GRANT SELECT ON public.external_identity_claims TO reader;
 -- public.free_consents: withholding guest_id (the guest cookie value, which would let a
 -- reader act as that guest towards the chat BFF)
-GRANT SELECT ("id", "user_id", "model", "locale", "text", "created_at", "revoked_at") ON public.free_consents TO reader;
+GRANT SELECT ("id", "user_id", "model", "locale", "text", "created_at", "revoked_at", "providers", "countries") ON public.free_consents TO reader;
 GRANT SELECT ON public.logs TO reader;
 GRANT SELECT ON public.midjourneys TO reader;
 GRANT SELECT ON public.model_status_components TO reader;
@@ -57,6 +57,8 @@ GRANT SELECT ("id", "grant_id", "auth_code", "client_id", "user_id", "data", "ex
 GRANT SELECT ON public.o_auth_tokens TO reader;
 -- public.options: withholding key
 GRANT SELECT ("value") ON public.options TO reader;
+-- public.own_purpose_objections: withholding guest_id, same reason as free_consents
+GRANT SELECT ("id", "created_at") ON public.own_purpose_objections TO reader;
 GRANT SELECT ON public.passkey_credentials TO reader;
 GRANT SELECT ON public.perf_metrics TO reader;
 GRANT SELECT ON public.prefill_groups TO reader;
