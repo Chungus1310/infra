@@ -86,6 +86,7 @@ GRANT SELECT ON public.system_task_locks TO reader;
 GRANT SELECT ("id", "task_id", "type", "status", "payload", "state", "result", "error", "locked_by", "created_at", "updated_at") ON public.system_tasks TO reader;
 -- public.tasks: withholding private_data
 GRANT SELECT ("id", "created_at", "updated_at", "task_id", "platform", "user_id", "group", "channel_id", "quota", "action", "status", "fail_reason", "submit_time", "start_time", "finish_time", "progress", "properties", "data") ON public.tasks TO reader;
+GRANT SELECT ON public.terms_acceptances TO reader;
 -- public.tokens: withholding key
 GRANT SELECT ("id", "user_id", "status", "name", "created_time", "accessed_time", "expired_time", "remain_quota", "unlimited_quota", "model_limits_enabled", "model_limits", "allow_ips", "used_quota", "group", "cross_group_retry", "deleted_at", "group_mapping", "auto_groups") ON public.tokens TO reader;
 GRANT SELECT ON public.top_ups TO reader;
