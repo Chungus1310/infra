@@ -62,6 +62,9 @@ GRANT SELECT ("id", "created_at") ON public.own_purpose_objections TO reader;
 GRANT SELECT ON public.passkey_credentials TO reader;
 GRANT SELECT ON public.perf_metrics TO reader;
 GRANT SELECT ON public.prefill_groups TO reader;
+GRANT SELECT ON public.provider_aliases TO reader;
+-- public.provider_consents: withholding guest_id, same reason as free_consents
+GRANT SELECT ("id", "user_id", "alias", "country", "locale", "text", "created_at", "revoked_at") ON public.provider_consents TO reader;
 -- public.push_subscriptions: withholding auth, p256dh, endpoint. auth (22 chars) and
 -- p256dh (87) are the RFC 8291 keypair and the endpoint URL carries the per-device
 -- FCM/Apple registration token; the three together are enough to push to a user's
