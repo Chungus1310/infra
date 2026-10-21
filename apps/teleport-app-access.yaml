@@ -33,7 +33,7 @@ spec:
   sources:
     - repoURL: https://charts.releases.teleport.dev
       chart: teleport-kube-agent
-      targetRevision: 18.10.1
+      targetRevision: 18.11.6
       helm:
         valueFiles:
           - $values/infra/teleport-app-access/values.yaml
