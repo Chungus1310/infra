@@ -57,7 +57,10 @@ generate_root() {
   [ -n "$enc" ] || { echo "!! generate-root did not complete" >&2; exit 1; }
   kubectl -n openbao exec openbao-0 -- bao operator generate-root -decode="$enc" -otp="$otp"
 }
+CALLER_KUBECONFIG="${KUBECONFIG:-}"
 export KUBECONFIG="$PWD/kubeconfig.breakglass"
+# `bao operator unseal -` sends a literal "-"; sys/unseal with key=- reads the key from stdin
+unseal_key() { printf '%s' "$1" | kubectl -n openbao exec -i openbao-0 -- bao write -format=json sys/unseal key=- >/dev/null; }
 
 # No -auto-approve: lesson 1 of INCIDENT 2026-07-23 (a blind apply -replace'd both nodes,
 # 34min DB outage). tofu prompts; read the plan.
@@ -130,7 +133,9 @@ bootstrap() {
 
 unseal() {
   echo ">> unsealing OpenBao"
-  while IFS= read -r k; do kubectl -n openbao exec openbao-0 -- bao operator unseal "$k" >/dev/null; done < <(SOPS_KEYS)
+  # a routine pod restart (an upgrade) has no break-glass kubeconfig; use the caller's
+  [ -f "$KUBECONFIG" ] || export KUBECONFIG="$CALLER_KUBECONFIG"
+  while IFS= read -r k; do unseal_key "$k"; done < <(SOPS_KEYS)
   kubectl -n openbao exec openbao-0 -- bao status | grep Sealed
 }
 
@@ -158,7 +163,7 @@ restore() {
   local tmp; tmp=$(kubectl -n openbao exec openbao-0 -- bao operator init -key-shares=1 -key-threshold=1 -format=json)
   local tkey trt; tkey=$(echo "$tmp" | python3 -c 'import sys,json;print(json.load(sys.stdin)["unseal_keys_b64"][0])')
   trt=$(echo "$tmp" | python3 -c 'import sys,json;print(json.load(sys.stdin)["root_token"])')
-  kubectl -n openbao exec openbao-0 -- bao operator unseal "$tkey" >/dev/null
+  unseal_key "$tkey"
   # Over exec stdin, checked by hash inside the pod: a 450 KB stdin once broke mid-stream
   # (2026-09-08) and the restore then ran on an empty file, so the copy is verified before
   # restore touches it. Snapshots are ~90 KB; if this ever fails on size, stage the file with
