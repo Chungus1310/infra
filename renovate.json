@@ -1,6 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "description": "Weekly dependency bumps, never a PR. Patch and minor of images and charts merge straight to main in the Monday window (no CI here, ArgoCD rolls the commit). Everything else waits in the Dependency dashboard issue; ticking its box merges it to main on the next run.",
+  "description": "Weekly dependency bumps, never a PR. Patch and minor of images and charts merge straight to main on Mondays (no CI here, ArgoCD rolls the commit). Everything else waits in the Dependency dashboard issue; ticking its box merges it to main on the next run.",
   "extends": [
     "config:recommended",
     ":disableRateLimiting",
@@ -8,7 +8,7 @@
   ],
   "timezone": "Europe/Berlin",
   "schedule": [
-    "before 6am on monday"
+    "on monday"
   ],
   "ignoreTests": true,
   "automerge": true,
