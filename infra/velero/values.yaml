@@ -1,6 +1,11 @@
 # Velero: catch-all cluster backup (PVCs + k8s resource state) -> Hetzner Object Storage.
 # Fills the gap GitOps + CNPG/OpenBao snapshots don't cover (arbitrary PVC data, namespace
 # state, dynamically-created resources). node-agent (Kopia) does file-level PV backup.
+# ahead of the chart's appVersion for the 1.18.3 security fixes
+image:
+  repository: docker.io/velero/velero
+  tag: v1.18.4
+  digest: sha256:c89fb5b6d1fd6afd368e0f483e6f5555fd62851a1eada8ac5c72482e674ca17b
 initContainers:
   - name: velero-plugin-for-aws
     image: velero/velero-plugin-for-aws:v1.12.1@sha256:b9735c9d08c3244c462bb81263ff5f4ad4e24b96865338c14733a59e3624dfaf
