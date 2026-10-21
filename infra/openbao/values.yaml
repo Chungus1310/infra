@@ -12,7 +12,7 @@ server:
   image:
     registry: quay.io
     repository: openbao/openbao
-    tag: "2.6.2"
+    tag: "2.6.4"
   ha:
     enabled: true
     replicas: 1
